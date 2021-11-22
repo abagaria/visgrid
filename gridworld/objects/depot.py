@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from .basesprite import BaseSprite, pos2xy
-from visgrid import utils
+import utils
 
 class Depot(BaseSprite):
     def __init__(self, position=(0, 0), color='red'):

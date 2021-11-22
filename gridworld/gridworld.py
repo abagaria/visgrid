@@ -1,23 +1,42 @@
 import random
 
 import numpy as np
-import matplotlib.pyplot as plt
 
 from . import grid
 from .objects.agent import Agent
 from .objects.depot import Depot
 
 class GridWorld(grid.BaseGrid):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, rows, cols, randomize_starts, randomize_goals):
+        super().__init__(rows=rows, cols=cols)
         self.agent = Agent()
         self.actions = [i for i in range(4)]
         self.action_map = grid.directions
         self.agent.position = np.asarray((0, 0), dtype=int)
         self.goal = None
 
+        self.randomize_goals = randomize_goals
+        self.randomize_starts = randomize_starts
+
+        if not randomize_starts:
+            raise NotImplementedError()
+
+        self.reset_goal()
+        self.original_player_position = self.get_state()
+        print(f"Created {self}")
+        print(f"Original PlayerPos={self.agent.position}, GoalPos={self.goal.position}")
+        
+    def reset(self):
+        self.reset_agent()
+        
+        if self.randomize_goals:
+            self.reset_goal()
+        
+        print(f"Reset to PlayerPos={self.agent.position}, GoalPos={self.goal.position}")
+
     def reset_agent(self):
-        self.agent.position = self.get_random_position()
+        self.agent.position = self.get_random_position() if self.randomize_starts\
+                                 else self.original_player_position
         at = lambda x, y: np.all(x.position == y.position)
         while (self.goal is not None) and at(self.agent, self.goal):
             self.agent.position = self.get_random_position()
@@ -28,8 +47,8 @@ class GridWorld(grid.BaseGrid):
         self.goal.position = self.get_random_position()
         self.reset_agent()
 
-    def check_goal(self):
-        return np.all(self.agent.position == self.goal.position)
+    def check_goal(self, pos):
+        return np.all(pos == self.goal.position)
 
     def step(self, action):
         assert (action in range(4))
@@ -61,6 +80,11 @@ class GridWorld(grid.BaseGrid):
         if self.goal and plot_goal:
             self.goal.plot(ax, linewidth_multiplier=linewidth_multiplier)
         return ax
+
+    def __str__(self):
+        size_str = f"rows={self._rows}\tcols={self._cols}"
+        randomize_str = f"RandomizePlayer={self.randomize_starts}\tRandomizeGoals={self.randomize_goals}"
+        return "Gridworld " + size_str + " " + randomize_str
 
 class TestWorld(GridWorld):
     def __init__(self):
