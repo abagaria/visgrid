@@ -26,6 +26,10 @@ class GridWorldEnv(gym.Env):
         self.action_space = self._get_action_space()
         self.observation_space = self._get_observation_space()
 
+        # Episode counter
+        self.T = 0
+        self.max_steps_per_episode = 100
+
         super().__init__()
 
     def _get_action_space(self):
@@ -50,11 +54,17 @@ class GridWorldEnv(gym.Env):
         return SensorChain([img_sensor])
         
     def step(self, action):
+        self.T += 1
         state, reward, done = self.gridworld.step(action)
         obs = self.sensors.observe(state)
-        return obs, reward, done, dict(state=state)
+        reset = self.T % self.max_steps_per_episode == 0
+        return obs, reward, done or reset, dict(
+            state=state, 
+            needs_reset=reset
+        )
 
     def reset(self):
+        self.T = 0
         self.gridworld.reset()
         state = self.gridworld.get_state()
         return self.sensors.observe(state)
