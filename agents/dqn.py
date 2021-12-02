@@ -9,7 +9,7 @@ from pfrl.q_functions import DiscreteActionValueHead
 from gridworld.gridenv import GridWorldEnv
 
 
-env = GridWorldEnv(6, 6, True, False, False, 14)
+env = GridWorldEnv(6, 6, True, False, False)
 n_actions = env.action_space.n
 
 def phi(x):

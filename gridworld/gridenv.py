@@ -11,15 +11,18 @@ class GridWorldEnv(gym.Env):
                  cols,
                  randomize_starts,
                  randomize_goals,
-                 add_noise=False,
-                 pixel_density=1):
+                 add_noise=False):
+        assert rows == cols, "Should be square grid"
         
         # Underlying MDP
         self.gridworld = GridWorld(rows, cols, randomize_starts, randomize_goals)
+
+        # Image dimensions
+        img_width = img_height = 84
+        self.scale = img_width // self.gridworld._rows
         
         # Observation params
         self.add_noise = add_noise
-        self.pixel_density = pixel_density
         self.sensors = self._get_sensors()
         
         # Gym metadata
@@ -37,7 +40,6 @@ class GridWorldEnv(gym.Env):
         return spaces.Discrete(n_actions)
 
     def _get_observation_space(self):
-        assert isinstance(self.pixel_density, int), self.pixel_density
         def get_image_sensor():
             for sensor in self.sensors.sensors:
                 if isinstance(sensor, ImageSensor):
@@ -46,12 +48,24 @@ class GridWorldEnv(gym.Env):
         return spaces.Box(low=0., high=1., shape=get_image_sensor().size, dtype=np.float32)
 
     def _get_sensors(self):
-        img_sensor = ImageSensor(range=((0, self.gridworld._rows),
-                                        (0, self.gridworld._cols)),
-                                        pixel_density=self.pixel_density)
         if self.add_noise:
-            return SensorChain([img_sensor, NoisySensor()])
-        return SensorChain([img_sensor])
+            sensor_list = [
+                OffsetSensor(offset=(0.5, 0.5)),
+                NoisySensor(sigma=0.05),
+                ImageSensor(range=((0, self.gridworld._rows),
+                                   (0, self.gridworld._cols))),
+                ResampleSensor(scale=self.scale),
+                BlurSensor(sigma=0.6, truncate=1.),
+                NoisySensor(sigma=0.01)
+            ]
+        else:
+            sensor_list = [
+                OffsetSensor(offset=(0.5, 0.5)),
+                ImageSensor(range=((0, self.gridworld._rows),
+                                   (0, self.gridworld._cols))),
+                ResampleSensor(scale=self.scale),
+            ]
+        return SensorChain(sensor_list)
         
     def step(self, action):
         self.T += 1
